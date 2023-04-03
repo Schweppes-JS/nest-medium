@@ -57,6 +57,10 @@ export class UserService {
       );
   }
 
+  async findById(id: number): Promise<UserEntity> {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
   generateJWT({ id, username, email }: UserEntity): string {
     return sign({ id, username, email }, JWT_SECRET);
   }
