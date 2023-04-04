@@ -8,6 +8,7 @@ import { JWT_SECRET } from '@app/config';
 import { IUserResponse } from './types/userResponse.interface';
 import { LoginUserDTO } from './dto/loginUser.dto';
 import { compare } from 'bcrypt';
+import { UpdateUserDTO } from './dto/updateUser.dto';
 
 @Injectable()
 export class UserService {
@@ -55,6 +56,15 @@ export class UserService {
         'Credentials not valid',
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
+  }
+
+  async updateUser(
+    id: number,
+    updateUserDTO: UpdateUserDTO,
+  ): Promise<UserEntity> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    Object.assign(user, updateUserDTO);
+    return await this.userRepository.save(user as any);
   }
 
   async findById(id: number): Promise<UserEntity> {
