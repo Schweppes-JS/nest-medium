@@ -12,3 +12,5 @@ export class CreateArticleDto {
 
   readonly tagList?: string[];
 }
+
+export class PersistArticleDto extends CreateArticleDto {}

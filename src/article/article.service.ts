@@ -1,6 +1,6 @@
 import { UserEntity } from '@app/user/user.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { CreateArticleDto } from './dto/createArticle.dto';
+import { CreateArticleDto, PersistArticleDto } from './dto/createArticle.dto';
 import { ArticleEntity } from './article.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
@@ -37,6 +37,22 @@ export class ArticleService {
       if (article.author.id === userId)
         return await this.articleRepository.delete({ slug });
       else
+        throw new HttpException('You are not an author', HttpStatus.FORBIDDEN);
+    } else
+      throw new HttpException('Article does not exist', HttpStatus.NOT_FOUND);
+  }
+
+  async updateArticle(
+    slug: string,
+    updateArticleDto: PersistArticleDto,
+    userId: number,
+  ): Promise<ArticleEntity> {
+    const article = await this.findBydSlug(slug);
+    if (article) {
+      if (article.author.id === userId) {
+        Object.assign(article, updateArticleDto);
+        return this.articleRepository.save(article);
+      } else
         throw new HttpException('You are not an author', HttpStatus.FORBIDDEN);
     } else
       throw new HttpException('Article does not exist', HttpStatus.NOT_FOUND);
