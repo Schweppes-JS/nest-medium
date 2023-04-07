@@ -6,13 +6,44 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 import { IArticleResponse } from './types/articleResponse.interface';
 import slugify from 'slugify';
+import { IArticlesResponse } from './types/articlesResponse.interface';
+import appDataSource from '@app/ormconfig';
 
 @Injectable()
 export class ArticleService {
   constructor(
     @InjectRepository(ArticleEntity)
     private readonly articleRepository: Repository<ArticleEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
   ) {}
+
+  async findAll(currentUserId: number, query: any): Promise<IArticlesResponse> {
+    const queryBuilder = appDataSource
+      .getRepository(ArticleEntity)
+      .createQueryBuilder('articles')
+      .leftJoinAndSelect('articles.author', 'author');
+    queryBuilder.orderBy('articles.createdAt', 'DESC');
+    if (query.limit) queryBuilder.limit(query.limit);
+    if (query.offset) queryBuilder.offset(query.offset);
+    if (query.tag) {
+      queryBuilder.andWhere('articles.tagList LIKE :tag', {
+        tag: `%${query.tag}%`,
+      });
+    }
+    if (query.author) {
+      const author = await this.userRepository.findOne({
+        where: { username: query.author },
+      });
+      queryBuilder.andWhere('articles.authorId = :id', {
+        id: author.id,
+      });
+    }
+    const articles = await queryBuilder.getMany();
+    const articlesCount = await queryBuilder.getCount();
+    return { articles, articlesCount };
+  }
+
   async createArticle(
     currentUser: UserEntity,
     createArticleDto: CreateArticleDto,
