@@ -57,24 +57,50 @@ export class ArticleController {
   @Delete(':slug')
   @UseGuards(AuthGuard)
   async deleteArticle(
-    @User('id') id: number,
+    @User('id') currentUserId: number,
     @Param('slug') slug: string,
   ): Promise<DeleteResult> {
-    return await this.artcileService.deleteArticle(slug, id);
+    return await this.artcileService.deleteArticle(slug, currentUserId);
   }
 
   @Put(':slug')
   @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe())
   async updateArticle(
-    @User('id') id: number,
+    @User('id') currentUserId: number,
     @Param('slug') slug: string,
     @Body('article') updateArticleDto: PersistArticleDto,
   ): Promise<IArticleResponse> {
     const article = await this.artcileService.updateArticle(
       slug,
       updateArticleDto,
-      id,
+      currentUserId,
+    );
+    return this.artcileService.buildArticleResponse(article);
+  }
+
+  @Post(':slug/favorite')
+  @UseGuards(AuthGuard)
+  async addArticleToFavorites(
+    @User('id') currentUserId: number,
+    @Param('slug') slug: string,
+  ): Promise<IArticleResponse> {
+    const article = await this.artcileService.addArticleToFavorites(
+      slug,
+      currentUserId,
+    );
+    return this.artcileService.buildArticleResponse(article);
+  }
+
+  @Delete(':slug/favorite')
+  @UseGuards(AuthGuard)
+  async deleteArticleFromFavorites(
+    @User('id') currentUserId: number,
+    @Param('slug') slug: string,
+  ): Promise<IArticleResponse> {
+    const article = await this.artcileService.deleteArticleFromFavorites(
+      slug,
+      currentUserId,
     );
     return this.artcileService.buildArticleResponse(article);
   }
