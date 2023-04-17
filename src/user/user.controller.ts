@@ -4,27 +4,25 @@ import {
   Get,
   Post,
   Put,
-  Req,
   UseGuards,
   UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { CreateUserDTO } from '@app/user/dto/createUser.dto';
 import { UserService } from '@app/user/user.service';
 import { IUserResponse } from './types/userResponse.interface';
 import { LoginUserDTO } from './dto/loginUser.dto';
-import { IExpressRequest } from '@app/types/expressRequest';
 import { User } from '@app/user/decorators/user.decorator';
 import { UserEntity } from './user.entity';
 import { AuthGuard } from './guards/auth.guard';
 import { UpdateUserDTO } from './dto/updateUser.dto';
+import { BackendValidationPipe } from '@app/shared/pipes/backendValidation.pipe';
 
 @Controller()
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('users')
-  @UsePipes(new ValidationPipe())
+  @UsePipes(new BackendValidationPipe())
   async createUser(
     @Body('user') createUserDTO: CreateUserDTO,
   ): Promise<IUserResponse> {
@@ -33,7 +31,7 @@ export class UserController {
   }
 
   @Post('users/login')
-  @UsePipes(new ValidationPipe())
+  @UsePipes(new BackendValidationPipe())
   async login(
     @Body('user') loginUserDTO: LoginUserDTO,
   ): Promise<IUserResponse> {

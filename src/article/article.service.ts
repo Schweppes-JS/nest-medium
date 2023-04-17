@@ -8,6 +8,7 @@ import { IArticleResponse } from './types/articleResponse.interface';
 import slugify from 'slugify';
 import { IArticlesResponse } from './types/articlesResponse.interface';
 import appDataSource from '@app/ormconfig';
+import { FollowEntity } from '@app/profile/follow.entity';
 
 @Injectable()
 export class ArticleService {
@@ -16,6 +17,8 @@ export class ArticleService {
     private readonly articleRepository: Repository<ArticleEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(FollowEntity)
+    private readonly followRepository: Repository<FollowEntity>,
   ) {}
 
   async findAll(currentUserId: number, query: any): Promise<IArticlesResponse> {
@@ -61,7 +64,6 @@ export class ArticleService {
       favoritesIds = user.favorites.map((article) => article.id);
     }
     const articles = await queryBuilder.getMany();
-    console.log(articles);
     const articlesWithFavorites = articles.map((article) => {
       const isFavorite = favoritesIds.includes(article.id);
       return { ...article, favorited: isFavorite };
@@ -69,6 +71,26 @@ export class ArticleService {
 
     const articlesCount = await queryBuilder.getCount();
     return { articles: articlesWithFavorites, articlesCount };
+  }
+
+  async getFeed(currentUserId: number, query: any): Promise<IArticlesResponse> {
+    const follows = await this.followRepository.find({
+      where: { followerId: currentUserId },
+    });
+
+    if (follows.length === 0) return { articles: [], articlesCount: 0 };
+    const followingUserIds = follows.map((follow) => follow.followingId);
+    const queryBuilder = appDataSource
+      .getRepository(ArticleEntity)
+      .createQueryBuilder('articles')
+      .leftJoinAndSelect('articles.author', 'author')
+      .where('articles.authorId IN (:...ids)', { ids: followingUserIds });
+    queryBuilder.orderBy('articles.createdAt', 'DESC');
+    const articlesCount = await queryBuilder.getCount();
+    if (query.limit) queryBuilder.limit(query.limit);
+    if (query.offset) queryBuilder.offset(query.offset);
+    const articles = await queryBuilder.getMany();
+    return { articles, articlesCount };
   }
 
   async createArticle(

@@ -18,23 +18,25 @@ export class UserService {
   ) {}
 
   async createUser(createUserDTO: CreateUserDTO): Promise<UserEntity> {
+    const errorResponse = { errors: {} };
     const userByEmail = await this.userRepository.findOne({
       where: { email: createUserDTO.email },
     });
     const userByUsername = await this.userRepository.findOne({
       where: { username: createUserDTO.username },
     });
+    if (userByEmail) errorResponse.errors['email'] = 'Email already exists';
+    if (userByUsername)
+      errorResponse.errors['username'] = 'Username already exists';
     if (userByEmail || userByUsername)
-      throw new HttpException(
-        'User already exists',
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
+      throw new HttpException(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
     const newUser = new UserEntity();
     Object.assign(newUser, createUserDTO);
     return this.userRepository.save(newUser);
   }
 
   async login(loginUserDTO: LoginUserDTO): Promise<UserEntity> {
+    const errorResponse = { errors: { 'email or password': 'is invalid' } };
     const user = await this.userRepository.findOne({
       where: { email: loginUserDTO.email },
       select: ['id', 'username', 'email', 'password', 'bio', 'image'],
@@ -47,15 +49,9 @@ export class UserService {
       delete user.password;
       if (isPasswordCorrect) return user;
       else
-        throw new HttpException(
-          'Credentials not valid',
-          HttpStatus.UNPROCESSABLE_ENTITY,
-        );
+        throw new HttpException(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
     } else
-      throw new HttpException(
-        'Credentials not valid',
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
+      throw new HttpException(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
   async updateUser(
